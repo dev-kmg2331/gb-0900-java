@@ -13,7 +13,7 @@ public class ATM {
 
       String message = "1. 신한은행\n2. 국민은행\n3. 카카오뱅크\n4.나가기";
 //      계좌개설, 입금하기, 출금하기, 잔액조회, 계좌번호 찾기(새로운 계좌발급, 핸드폰 번호로 서비스 이용가능), 나가기
-      String menu = "1. 계좌개설\n2. 입금하기\n3. 출금하기\n4. 잔액조회\n5. 계좌번호 찾기\n6. 은행 다시 선택";
+      String menu = "0. 주식시장\n1. 계좌개설\n2. 입금하기\n3. 출금하기\n4. 잔액조회\n5. 계좌번호 찾기\n6. 은행 다시 선택";
       Scanner sc = new Scanner(System.in);
       int index = 0, choice = 0, money = 0;
       // 계좌 번호는 번호를 담아야 하므로 빈문자열, 폰번호 비밀번호는 널로 초기화
@@ -139,6 +139,16 @@ public class ATM {
             user = Bank.login(arrBank, arCount, account, password);
 
             switch (choice) {
+            case 0:
+            	if(!(user instanceof Kakao)) {
+            		System.out.println("주식 서비스는 카카오뱅크에서만 이용 가능합니다. (●'◡'●)/");
+            		break;
+            	}
+            	Kakao kakaoUser = (Kakao)user;
+            	System.out.println("투자액 : ");
+//            	kakaoUser. sc.nextInt();
+            	Thread stockThread = new Thread();
+            	break;
             case 2: // 입금하기
 
                if (user != null) {
