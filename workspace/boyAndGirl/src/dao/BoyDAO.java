@@ -1,6 +1,6 @@
 package dao;
 
-import vo.BoyVO;
+import domain.BoyVO;
 
 public class BoyDAO {
 	
@@ -10,11 +10,13 @@ public class BoyDAO {
 		
 		BoyVO vo = new BoyVO();
 		
+		int i = 0;
+		
 		stringDatas = s.split("\t");
 		
-		vo.setName(stringDatas[0]);
-		vo.setRank(Integer.valueOf(stringDatas[1]));
-		vo.setAmount(Integer.valueOf(stringDatas[2].replaceAll(",", "")));
+		vo.setName(stringDatas[i++]);
+		vo.setRank(Integer.valueOf(stringDatas[i++]));
+		vo.setAmount(Integer.valueOf(stringDatas[i++].replaceAll(",", "")));
 		
 		return vo;
 	}

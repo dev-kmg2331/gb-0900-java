@@ -1,6 +1,6 @@
 package dao;
 
-import vo.GirlVO;
+import domain.GirlVO;
 
 public class GirlDAO {
 	private String[] stringDatas = null;

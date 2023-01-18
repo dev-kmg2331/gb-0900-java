@@ -45,6 +45,7 @@ public class SalaryDAO {
 //   삭제
    public void delete(int salary) throws IOException {
 	   BufferedReader bufferedReader = DBConnecter.getReader();
+	   BufferedWriter bufferedWriter = null;
 	      String line = null, temp = "";
 	      
 	      while((line = bufferedReader.readLine()) != null) {
@@ -53,7 +54,9 @@ public class SalaryDAO {
 	         }
 	         temp += line + "\n";
 	      }
-	      BufferedWriter bufferedWriter = DBConnecter.getWriter();
+	      
+//	      bf는 시작할때 파일 내용을 싹 날리고 시작하기 때문에 읽기를 먼저 해야한다.
+	      bufferedWriter = DBConnecter.getWriter();
 	      bufferedWriter.write(temp);
 	      
 	      bufferedWriter.close();

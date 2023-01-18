@@ -1,12 +1,13 @@
-package vo;
+package domain;
 
-public class NamesVO {
+public class NamesDTO {
+	
 	private String name;
 	private int rank;
 	private int amount;
 	private String gender;
 	
-	public NamesVO() {;}
+	public NamesDTO() {;}
 	
 	public String getName() {
 		return name;
@@ -37,7 +38,7 @@ public class NamesVO {
 	
 	@Override
 	public String toString() {
-		return name + "\t" + rank + "\t" + amount;
+		return gender + "\t" + name + "\t" + rank + "\t" + amount;
 	}
 
 	

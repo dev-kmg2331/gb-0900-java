@@ -7,67 +7,94 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 
-import vo.NamesVO;
+import domain.NamesDTO;
 
 public class NamesDAO {
-	
-	public ArrayList<NamesVO> merge() throws IOException {
+
+	private ArrayList<NamesDTO> merge() throws IOException {
 		BufferedReader br = null;
-		
-		ArrayList<NamesVO> names = new ArrayList<NamesVO>();
-		ArrayList<Integer> temp = null;
-		ArrayList<NamesVO> result = new ArrayList<NamesVO>();
-		
-		HashSet<Integer> dataHash = new HashSet<Integer>();
+
+		ArrayList<NamesDTO> names = new ArrayList<NamesDTO>();
 		
 		BoyDAO boyDAO = new BoyDAO();
 		GirlDAO girlDAO = new GirlDAO();
-		
+
 		String line = "";
-		
+
 		br = DBConnecter.getReader(DBConnecter.BOYPATH);
-		
-		while((line = br.readLine()) != null) {
+
+		while ((line = br.readLine()) != null) {
 			names.add(boyDAO.setObject(line));
 		}
-		
+
 		br = DBConnecter.getReader(DBConnecter.GIRLPATH);
-		
-		while((line = br.readLine()) != null) {
+
+		while ((line = br.readLine()) != null) {
 			names.add(girlDAO.setObject(line));
 		}
+
+		br.close();
 		
-		names.stream().map(v -> v.getAmount()).forEach(dataHash::add);;
 		
-		temp = new ArrayList<Integer>(dataHash);
+		return names;
+	}
+
+	public ArrayList<NamesDTO> getMergedArray() throws IOException {
+		ArrayList<Integer> temp;
+		ArrayList<NamesDTO> names = merge();
+		ArrayList<NamesDTO> result = new ArrayList<NamesDTO>();
 		
-		temp.sort(Collections.reverseOrder());
-		
+		temp = sortAmount(names);
+
 		int index = 1;
-		
-		for(int i : temp) {
-			for(NamesVO vo : names) {
-				if(vo.getAmount() == i) {
-					int rank = index;
-					vo.setRank(rank);
-					result.add(vo);
+		int count = 0;
+
+		for (int i : temp) {
+
+			for (int t = 0; t < names.size(); t++) {
+
+				if (i == names.get(t).getAmount()) {
+					names.get(t).setRank(index - count);
+					result.add(names.get(t));
 					
+					count++;
 					index++;
+					
+					names.remove(t);
 				}
+
 			}
+
+			count = 0;
 		}
 		
 		return result;
 	}
-	
-	public void createFile(ArrayList<NamesVO> arr) throws IOException {
-		BufferedWriter bw = DBConnecter.getAppend(DBConnecter.NAMESPATH);
+
+	private ArrayList<Integer> sortAmount(ArrayList<NamesDTO> names) {
+		ArrayList<Integer> temp = null;
+		HashSet<Integer> dataHash = new HashSet<Integer>();
+		names.stream().map(v -> v.getAmount()).forEach(dataHash::add);
+
+		temp = new ArrayList<Integer>(dataHash);
+
+		temp.sort(Collections.reverseOrder());
 		
-		for(NamesVO vo : arr) {
-			bw.write(vo.toString() + "\n");
+		return temp;
+	}
+
+	public void createFile(ArrayList<NamesDTO> arr) throws IOException {
+		BufferedWriter bw = DBConnecter.getWriter(DBConnecter.NAMESPATH);
+
+		String temp = "";
+		
+		for (NamesDTO dto : arr) {
+			temp += dto.toString() + "\n";
 		}
 		
-		if(bw != null) {
+		bw.write(temp);
+
+		if (bw != null) {
 			bw.close();
 		}
 	}
