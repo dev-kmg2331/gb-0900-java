@@ -4,9 +4,6 @@
 #bat
 *.bat
 
-#session
-*.session
-
 #pdf
 *.pdf
 
