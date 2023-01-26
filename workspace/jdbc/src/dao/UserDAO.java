@@ -5,6 +5,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Base64;
+import java.util.HashMap;
 
 import domain.UserVO;
 
@@ -14,15 +16,7 @@ public class UserDAO {
 	public PreparedStatement pr; // 쿼리 관리 객체
 	public ResultSet rs; // 결과 테이블 객체
 	
-	private static final int KEY = 3;
-	
-	String[] sqlErrorMsgs = {
-			"checkId() ",
-			"join() "
-	};
-	String[] errorMsgTypes = {
-			"SQL문 오류"
-	};
+	public static HashMap<String, Object> httpRequestSession = new HashMap<String, Object>();
 	
 //	아이디 중복검사
 //	중복이 없을 떄 true 있을 떄 false
@@ -30,6 +24,7 @@ public class UserDAO {
 		String query = "SELECT COUNT(USER_ID) FROM TBL_USER "
 				+ "WHERE USER_IDENTIFICATION = ?";
 		boolean result = false;
+		
 		try {
 			con = DBConnector.getConnection();
 			pr = con.prepareStatement(query);
@@ -40,7 +35,6 @@ public class UserDAO {
 			result = rs.getInt(1) == 0;
 			
 		} catch (SQLException e) {
-			System.out.println(sqlErrorMsgs[0] + errorMsgTypes[0]);
 			e.printStackTrace();
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -67,23 +61,25 @@ public class UserDAO {
 	
 //	회원가입
 	public void join(UserVO vo) {
-		String query = "INSERT INTO TBL_USER (USER_ID, USER_IDENTIFICATION, USER_NAME, USER_PASSWORD, "
+		String tbl_userQuery = "INSERT INTO TBL_USER (USER_ID, USER_IDENTIFICATION, USER_NAME, USER_PASSWORD, "
 				+ "USER_PHONE, USER_NICKNAME, USER_EMAIL, USER_ADDRESS, USER_BIRTH, USER_GENDER, USER_RECOMMENDER_ID) "
-				+ "VALUES(SEQ_USER.NEXTVAL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-		int success = 0;
+				+ "VALUES(SEQ_USER.NEXTVAL, ?, ?, ?, ?, ?, ?, ?, TO_DATE(?, 'YYYY-MM-DD'), ?, ?)";
 		
-		if(!checkId(vo.getUserIdentification())) {
-			System.out.println(success == 0 ? "회원가입 실패!" : "회원가입 성공!");
-			return;
-		}
+		String tbl_RecommendQuery = "UPDATE TBL_RECOMMEND SET RECOMMEND_COUNT = RECOMMEND_COUNT + 1 WHERE USER_ID = ? ";
+		
+		String getUserIdQuery = "SELECT USER_ID "
+				+ "FROM TBL_USER "
+				+ "WHERE USER_IDENTIFICATION = ? ";
+		
+		Long userId = 0L;
 		
 		try {
 			con = DBConnector.getConnection();
-			pr = con.prepareStatement(query);
+			pr = con.prepareStatement(tbl_userQuery);
 			
 			pr.setString(1, vo.getUserIdentification());
 			pr.setString(2, vo.getUserName());
-			pr.setString(3, encryptPassword(vo.getUserPassword()));
+			pr.setString(3, getBase64EncodedPassword(vo.getUserPassword()));
 			pr.setString(4, vo.getUserPhone());
 			pr.setString(5, vo.getUserNickname());
 			pr.setString(6, vo.getUserEmail());
@@ -92,10 +88,24 @@ public class UserDAO {
 			pr.setString(9, vo.getUserGender());
 			pr.setString(10, vo.getUserRecommenderId());
 			
-			success = pr.executeUpdate();
+			pr.executeUpdate();
+			
+			if(vo.getUserRecommenderId() != null) {
+				pr = con.prepareStatement(getUserIdQuery);
+				pr.setString(1, vo.getUserRecommenderId());
+				rs = pr.executeQuery();
+				
+				if(rs.next()) {
+					userId = rs.getLong(1);
+				}
+				
+				pr = con.prepareStatement(tbl_RecommendQuery);
+				pr.setLong(1, userId);
+				
+				pr.executeUpdate();
+			}
 			
 		} catch (SQLException e) {
-			System.out.println("select() " + errorMsgTypes[0]);
 			e.printStackTrace();
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -116,33 +126,32 @@ public class UserDAO {
 				throw new RuntimeException(e);
 			}
 		}
-		System.out.println(success == 0 ? "회원가입 실패!" : "회원가입 성공!");
+	}
+
+	private String getBase64EncodedPassword(String s) {
+		return new String(Base64.getEncoder().encode(s.getBytes()));
 	}
 
 //	로그인
 	public UserVO login(String userIdentification, String password) {
 		UserVO vo = null;
-		String query = "SELECT USER_ID "
+		String query = "SELECT USER_ID, USER_IDENTIFICATION, USER_NAME, USER_PASSWORD, "
+				+ "USER_PHONE, USER_NICKNAME, USER_EMAIL, USER_ADDRESS, USER_BIRTH, USER_GENDER, USER_RECOMMENDER_ID "
 				+ "FROM TBL_USER "
 				+ "WHERE USER_IDENTIFICATION = ? AND USER_PASSWORD = ?";
-		
-		if(checkId(userIdentification)) {
-			return vo;
-		}
 		
 		try {
 			con = DBConnector.getConnection();
 			pr = con.prepareStatement(query);
 			pr.setString(1, userIdentification);
-			pr.setString(2, encryptPassword(password));
+			pr.setString(2, getBase64EncodedPassword(password));
 			rs = pr.executeQuery();
 			
 			if(rs.next()) {
-				vo = select(rs.getLong(1));
+				vo = setUserVO(rs);
 			}
 			
 		} catch (SQLException e) {
-			System.out.println("select() " + errorMsgTypes[0]);
 			e.printStackTrace();
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -168,44 +177,43 @@ public class UserDAO {
 	}
 	
 //	암호화
-	public String encryptPassword(String pw) {
-		String result = "";
-		for(char c : pw.toCharArray()) {
-			result += (char)(c * KEY);
-		}
-		
-		return result;
-	}
+//	private String encryptPassword(String pw) {
+//		String result = "";
+//		for(char c : pw.toCharArray()) {
+//			result += (char)(c * KEY);
+//		}
+//		
+//		return result;
+//	}
 
 //	복호화
-	public String decryptPassword(String pw) {
-		String result = "";
-		for(char c : pw.toCharArray()) {
-			result += (char)(c / KEY);
-		}
-		
-		return result;	
-	}
+//	private String decryptPassword(String pw) {
+//		String result = "";
+//		for(char c : pw.toCharArray()) {
+//			result += (char)(c / KEY);
+//		}
+//		
+//		return result;
+//	}
 	
 //	회원탈퇴
-	public void quitUser(Long userId) {
+	public void quitUser() {
 		UserVO vo = null;
 		
-		vo = select(userId);
+		vo = select();
 		
 		if(vo != null) {
 			Long deletedUserId = vo.getUserId();
 			vo.setUserIdentification("DELETED_IDENTIFICATION" + deletedUserId);
-			System.out.println(vo);
+			updateUser(vo);
 		}
 		
-		updateUser(vo);
 	}
 	
 //	아이디 찾기
 	public String findIdentification(String email, String phone) {
-		UserVO vo = null;
-		String query = "SELECT USER_ID "
+		String result = null;
+		String query = "SELECT USER_IDENTIFICATION "
 				+ "FROM TBL_USER "
 				+ "WHERE USER_EMAIL = ? AND USER_PHONE = ?";
 		
@@ -217,11 +225,10 @@ public class UserDAO {
 			rs = pr.executeQuery();
 			
 			if(rs.next()) {
-				vo = select(rs.getLong(1));
+				result = rs.getString(1);
 			}
 			
 		} catch (SQLException e) {
-			System.out.println("select() " + errorMsgTypes[0]);
 			e.printStackTrace();
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -243,21 +250,53 @@ public class UserDAO {
 			}
 		}
 		
-		return vo == null ? null : vo.getUserIdentification();
+		return result;
 	}
 	
 //	비밀번호 변경
-	public void updatePassword(UserVO vo) {
-		updateUser(vo);
+	public void updatePassword(String pw) {
+		String query = "UPDATE TBL_USER "
+				+ "SET USER_PASSWORD = ? "
+				+ "WHERE USER_ID= ?";
+		
+		try {
+			con = DBConnector.getConnection();
+			pr = con.prepareStatement(query);
+			
+			pr.setString(1, getBase64EncodedPassword(pw));
+			pr.setLong(2, (Long)httpRequestSession.get("userId"));
+			
+			pr.executeUpdate();
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if(rs != null) {
+					rs.close();
+				}
+				
+				if(pr != null) {
+					pr.close();
+				}
+				
+				if(con != null) {
+					con.close();
+				}
+			} catch (SQLException e) {
+				throw new RuntimeException(e);
+			}
+		}
 	}
 	
 //	회원정보 수정
 	public void updateUser(UserVO vo) {
 		String query = "UPDATE TBL_USER "
 				+ "SET USER_IDENTIFICATION=?, USER_NAME=?, USER_PASSWORD=?, USER_PHONE=?, USER_NICKNAME=?, USER_EMAIL=?, "
-				+ "USER_ADDRESS=?, USER_BIRTH=?, USER_GENDER=? , USER_RECOMMENDER_ID=? "
+				+ "USER_ADDRESS=?, USER_BIRTH=TO_DATE(?, 'YYYY-MM-DD'), USER_GENDER=? , USER_RECOMMENDER_ID=? "
 				+ "WHERE USER_ID= ?";
-		int success = 0;
 		
 		try {
 			con = DBConnector.getConnection();
@@ -265,7 +304,7 @@ public class UserDAO {
 			
 			pr.setString(1, vo.getUserIdentification());
 			pr.setString(2, vo.getUserName());
-			pr.setString(3, encryptPassword(vo.getUserPassword()));
+			pr.setString(3, getBase64EncodedPassword(vo.getUserPassword()));
 			pr.setString(4, vo.getUserPhone());
 			pr.setString(5, vo.getUserNickname());
 			pr.setString(6, vo.getUserEmail());
@@ -273,13 +312,11 @@ public class UserDAO {
 			pr.setString(8, vo.getUserBirth());
 			pr.setString(9, vo.getUserGender());
 			pr.setString(10, vo.getUserRecommenderId());
-			pr.setLong(11, vo.getUserId());
+			pr.setLong(11, (Long)httpRequestSession.get("userId"));
 			
-			success = pr.executeUpdate();
-			
+			pr.executeUpdate();
 			
 		} catch (SQLException e) {
-			System.out.println("select() " + errorMsgTypes[0]);
 			e.printStackTrace();
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -300,15 +337,17 @@ public class UserDAO {
 				throw new RuntimeException(e);
 			}
 		}
-		System.out.println(success == 0 ? "회원 수정 실패!" : "회원 수정 성공!");
 	}
 	
-//	회원정보 조회
-	public UserVO select(Long userId) {
+//	회원정보 조회 (회원용)
+	public UserVO select() {
 		String query = "SELECT USER_ID, USER_IDENTIFICATION, USER_NAME, USER_PASSWORD, "
 				+ "USER_PHONE, USER_NICKNAME, USER_EMAIL, USER_ADDRESS, USER_BIRTH, USER_GENDER, USER_RECOMMENDER_ID "
 				+ "FROM TBL_USER WHERE USER_ID = ?";
-		UserVO vo = new UserVO();
+		UserVO vo = null;
+		Long userId = (Long)httpRequestSession.get("userId");
+		
+		if(userId == null) return vo;
 		
 		try {
 			con = DBConnector.getConnection();
@@ -317,21 +356,10 @@ public class UserDAO {
 			rs = pr.executeQuery();
 			
 			if(rs.next()) {
-				vo.setUserId(rs.getLong(1));
-				vo.setUserIdentification(rs.getString(2));
-				vo.setUserName(rs.getString(3));
-				vo.setUserPassword(decryptPassword(rs.getString(4)));
-				vo.setUserPhone(rs.getString(5));
-				vo.setUserNickname(rs.getString(6));
-				vo.setUserEmail(rs.getString(7));
-				vo.setUserAddress(rs.getString(8));
-				vo.setUserBirth(matchDateFormat(rs.getString(9)));
-				vo.setUserGender(rs.getString(10));
-				vo.setUserRecommenderId(rs.getString(11));
+				vo = setUserVO(rs);
 			}
 			
 		} catch (SQLException e) {
-			System.out.println("select() " + errorMsgTypes[0]);
 			e.printStackTrace();
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -364,16 +392,18 @@ public class UserDAO {
 
 		int result = 0;
 		
+		con = DBConnector.getConnection();
+		
 		try {
-			con = DBConnector.getConnection();
 			pr = con.prepareStatement(query);
 			pr.setString(1, identification);
 			rs = pr.executeQuery();
 			
-			result = rs.next() ? rs.getInt(1) : 0;
+			if(rs.next()) {
+				result = rs.getInt(1);
+			}
 			
 		} catch (SQLException e) {
-			System.out.println("select() " + errorMsgTypes[0]);
 			e.printStackTrace();
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -404,34 +434,24 @@ public class UserDAO {
 				+ "USER_PHONE, USER_NICKNAME, USER_EMAIL, USER_ADDRESS, USER_BIRTH, USER_GENDER, USER_RECOMMENDER_ID "
 				+ "FROM TBL_USER WHERE USER_RECOMMENDER_ID = ? "
 				+ "ORDER BY USER_ID DESC";
-		
+				
 		UserVO vo = new UserVO();
 		ArrayList<UserVO> result = new ArrayList<UserVO>();
 		
+		con = DBConnector.getConnection();
 		try {
-			con = DBConnector.getConnection();
 			pr = con.prepareStatement(query);
 			pr.setString(1, identification);
 			rs = pr.executeQuery();
 			
 			while(rs.next()) {
-				vo.setUserId(rs.getLong(1));
-				vo.setUserIdentification(rs.getString(2));
-				vo.setUserName(rs.getString(3));
-				vo.setUserPassword(rs.getString(4));
-				vo.setUserPhone(rs.getString(5));
-				vo.setUserNickname(rs.getString(6));
-				vo.setUserEmail(rs.getString(7));
-				vo.setUserAddress(rs.getString(8));
-				vo.setUserBirth(rs.getString(9));
-				vo.setUserGender(rs.getString(10));
-				vo.setUserRecommenderId(rs.getString(11));
+				
+				vo = setUserVO(rs);
 				
 				result.add(vo);
-			}
+			}      
 			
 		} catch (SQLException e) {
-			System.out.println("select() " + errorMsgTypes[0]);
 			e.printStackTrace();
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -455,26 +475,32 @@ public class UserDAO {
 		
 		return result;
 	}
+
 	
 //	내가 추천한 사람
-	public UserVO getReccommendedUser(String identification) {
+	public UserVO getReccommendedUser(Long userId) {
 		UserVO vo = null;
-		String query = "SELECT USER_ID "
+		String query = "SELECT USER_ID, USER_IDENTIFICATION, USER_NAME, USER_PASSWORD, "
+				+ "USER_PHONE, USER_NICKNAME, USER_EMAIL, USER_ADDRESS, USER_BIRTH, USER_GENDER, USER_RECOMMENDER_ID "
 				+ "FROM TBL_USER "
-				+ "WHERE USER_IDENTIFICATION = ?";
+				+ "WHERE USER_IDENTIFICATION = "
+				+ "	("
+				+ "		SELECT USER_RECOMMENDER_ID "
+				+ "		FROM TBL_USER u "
+				+ "		WHERE u.USER_ID = ? "
+				+ "	)";
 		
 		try {
 			con = DBConnector.getConnection();
 			pr = con.prepareStatement(query);
-			pr.setString(1, identification);
+			pr.setLong(1, userId);
 			rs = pr.executeQuery();
 			
 			if(rs.next()) {
-				vo = select(rs.getLong(1));
+				vo = setUserVO(rs);
 			}
 			
 		} catch (SQLException e) {
-			System.out.println("select() " + errorMsgTypes[0]);
 			e.printStackTrace();
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -499,8 +525,26 @@ public class UserDAO {
 		return vo;
 	}
 	
-	private String matchDateFormat(String s) {
-		String[] temp = s.split(" ");
-		return temp[0];
+	private UserVO setUserVO(ResultSet rs) throws SQLException {
+		UserVO vo = new UserVO();
+		
+		vo.setUserId(rs.getLong(1));
+		vo.setUserIdentification(rs.getString(2));
+		vo.setUserName(rs.getString(3));
+		vo.setUserPassword(rs.getString(4));
+		vo.setUserPhone(rs.getString(5));
+		vo.setUserNickname(rs.getString(6));
+		vo.setUserEmail(rs.getString(7));
+		vo.setUserAddress(rs.getString(8));
+		vo.setUserBirth(matchDateFormat(rs.getString(9)));
+		vo.setUserGender(rs.getString(10));
+		vo.setUserRecommenderId(rs.getString(11));
+		
+		return vo;
 	}
+	
+	private String matchDateFormat(String s) {
+		return s.split(" ")[0];
+	}
+	
 }
