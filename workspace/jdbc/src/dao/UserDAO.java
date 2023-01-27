@@ -65,13 +65,8 @@ public class UserDAO {
 				+ "USER_PHONE, USER_NICKNAME, USER_EMAIL, USER_ADDRESS, USER_BIRTH, USER_GENDER, USER_RECOMMENDER_ID) "
 				+ "VALUES(SEQ_USER.NEXTVAL, ?, ?, ?, ?, ?, ?, ?, TO_DATE(?, 'YYYY-MM-DD'), ?, ?)";
 		
-		String tbl_RecommendQuery = "UPDATE TBL_RECOMMEND SET RECOMMEND_COUNT = RECOMMEND_COUNT + 1 WHERE USER_ID = ? ";
-		
-		String getUserIdQuery = "SELECT USER_ID "
-				+ "FROM TBL_USER "
-				+ "WHERE USER_IDENTIFICATION = ? ";
-		
-		Long userId = 0L;
+		String userIdentification = null;
+		Long selectedUserId = 0L;
 		
 		try {
 			con = DBConnector.getConnection();
@@ -90,19 +85,11 @@ public class UserDAO {
 			
 			pr.executeUpdate();
 			
-			if(vo.getUserRecommenderId() != null) {
-				pr = con.prepareStatement(getUserIdQuery);
-				pr.setString(1, vo.getUserRecommenderId());
-				rs = pr.executeQuery();
-				
-				if(rs.next()) {
-					userId = rs.getLong(1);
-				}
-				
-				pr = con.prepareStatement(tbl_RecommendQuery);
-				pr.setLong(1, userId);
-				
-				pr.executeUpdate();
+			userIdentification = vo.getUserRecommenderId();
+			
+			if(userIdentification != null) {
+				selectedUserId = getUserIdByIdentification(userIdentification);
+				increseUserRecommendCount(selectedUserId);
 			}
 			
 		} catch (SQLException e) {
@@ -385,10 +372,10 @@ public class UserDAO {
 	}
 
 //	추천수
-	public int countReccommends(String identification) {
-		String query = "SELECT COUNT(USER_ID) "
-				+ "FROM TBL_USER "
-				+ "WHERE USER_RECOMMENDER_ID = ?";
+	public int countReccommends(Long userId) {
+		String query = "SELECT RECOMMEND_COUNT "
+				+ "FROM TBL_RECOMMEND "
+				+ "WHERE USER_ID = ?";
 
 		int result = 0;
 		
@@ -396,7 +383,7 @@ public class UserDAO {
 		
 		try {
 			pr = con.prepareStatement(query);
-			pr.setString(1, identification);
+			pr.setLong(1, userId);
 			rs = pr.executeQuery();
 			
 			if(rs.next()) {
@@ -523,6 +510,82 @@ public class UserDAO {
 		}
 		
 		return vo;
+	}
+	
+	
+	private Long getUserIdByIdentification(String userIdentification) {
+		
+		String getUserIdQuery = "SELECT USER_ID "
+				+ "FROM TBL_USER "
+				+ "WHERE USER_IDENTIFICATION = ? ";
+		
+		Long userId = 0L;
+		
+		con = DBConnector.getConnection();
+		try {
+			pr = con.prepareStatement(getUserIdQuery);
+			pr.setString(1, userIdentification);
+			rs = pr.executeQuery();
+			
+			if(rs.next()) userId = rs.getLong(1);
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if(rs != null) {
+					rs.close();
+				}
+				
+				if(pr != null) {
+					pr.close();
+				}
+				
+				if(con != null) {
+					con.close();
+				}
+			} catch (SQLException e) {
+				throw new RuntimeException(e);
+			}
+		}
+		
+		return userId;
+	}
+	
+	public void increseUserRecommendCount(Long userId) {
+		String tbl_RecommendQuery = "UPDATE TBL_RECOMMEND SET RECOMMEND_COUNT = RECOMMEND_COUNT + 1 WHERE USER_ID = ? ";
+		
+		con = DBConnector.getConnection();
+		try {
+			pr = con.prepareStatement(tbl_RecommendQuery);
+			pr.setLong(1, userId);
+			pr.executeUpdate();
+			
+			System.out.println("추천수 증가.");
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if(rs != null) {
+					rs.close();
+				}
+				
+				if(pr != null) {
+					pr.close();
+				}
+				
+				if(con != null) {
+					con.close();
+				}
+			} catch (SQLException e) {
+				throw new RuntimeException(e);
+			}
+		}
 	}
 	
 	private UserVO setUserVO(ResultSet rs) throws SQLException {
