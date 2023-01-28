@@ -1,7 +1,7 @@
 package view;
 
 import dao.BoardDAO;
-import dao.ReplyDAO;
+import dao.ReplyDAO2;
 import dao.UserDAO;
 import domain.BoardVO;
 import domain.ReplyVO;
@@ -12,7 +12,7 @@ public class Test {
 	public static void main(String[] args) {
 		UserDAO dao = new UserDAO();
 		BoardDAO bDao = new BoardDAO();
-		ReplyDAO replyDAO = new ReplyDAO();
+		ReplyDAO2 replyDAO = new ReplyDAO2();
 		UserVO vo = new UserVO();
 		BoardVO bVO = new BoardVO();
 		ReplyVO replyVO = new ReplyVO();

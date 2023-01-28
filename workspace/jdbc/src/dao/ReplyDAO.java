@@ -298,7 +298,7 @@ public class ReplyDAO {
 	
 	public void deleteNestedReply(Long replyId) {
 		String query = "DELETE FROM TBL_REPLY "
-				+ "WHERE GROUP_ID = ? ";
+				+ "WHERE REPLY_ID = ? ";
 		
 		con = DBConnector.getConnection();
 		try {
