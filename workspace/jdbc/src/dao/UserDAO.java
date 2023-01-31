@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
 
+import domain.UserDTO;
 import domain.UserVO;
 
 public class UserDAO {
@@ -513,13 +514,13 @@ public class UserDAO {
 	}
 	
 	
-	private Long getUserIdByIdentification(String userIdentification) {
+	public Long getUserIdByIdentification(String userIdentification) {
 		
 		String getUserIdQuery = "SELECT USER_ID "
 				+ "FROM TBL_USER "
 				+ "WHERE USER_IDENTIFICATION = ? ";
 		
-		Long userId = 0L;
+		Long userId = null;
 		
 		con = DBConnector.getConnection();
 		try {
@@ -586,9 +587,10 @@ public class UserDAO {
 				throw new RuntimeException(e);
 			}
 		}
+
 	}
 	
-	private UserVO setUserVO(ResultSet rs) throws SQLException {
+	public UserVO setUserVO(ResultSet rs) throws SQLException {
 		UserVO vo = new UserVO();
 		
 		vo.setUserId(rs.getLong(1));

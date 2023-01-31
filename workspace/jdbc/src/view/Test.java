@@ -1,7 +1,8 @@
 package view;
 
 import dao.BoardDAO;
-import dao.ReplyDAO2;
+import dao.FollowDAO;
+import dao.LikeDAO;
 import dao.UserDAO;
 import domain.BoardVO;
 import domain.ReplyVO;
@@ -10,9 +11,10 @@ import domain.UserVO;
 public class Test {
 
 	public static void main(String[] args) {
-		UserDAO dao = new UserDAO();
+		UserDAO userDAO = new UserDAO();
 		BoardDAO bDao = new BoardDAO();
-		ReplyDAO2 replyDAO = new ReplyDAO2();
+		FollowDAO followDAO = new FollowDAO();
+		LikeDAO likeDAO = new LikeDAO();
 		UserVO vo = new UserVO();
 		BoardVO bVO = new BoardVO();
 		ReplyVO replyVO = new ReplyVO();
@@ -49,12 +51,12 @@ public class Test {
 		
 		
 //		---- 로그인 테스트
-//		UserVO temp = null;
-//		if((temp = dao.login("jjw1111", "1234")) != null) {
-//			vo = temp;
-//			System.out.println("로그인 성공");
-//			UserDAO.httpRequestSession.put("userId", temp.getUserId());
-//		} else System.out.println("로그인 실패.");
+		UserVO temp = null;
+		if((temp = userDAO.login("jjw1111", "1234")) != null) {
+			vo = temp;
+			System.out.println("로그인 성공");
+			UserDAO.httpRequestSession.put("userId", temp.getUserId());
+		} else System.out.println("로그인 실패.");
 		
 ////		---- 회원정보 조회 테스트
 //		System.out.println(dao.select());
@@ -67,7 +69,7 @@ public class Test {
 //		dao.updatePassword("2331");
 		
 //		---- 추천수 테스트
-		System.out.println(dao.countReccommends(3L));
+//		System.out.println(dao.countReccommends(3L));
 		
 //		bVO.setBoardTitle("강민구의 하루");
 //		bVO.setBoardContent("알찬 하루였다!");
@@ -100,6 +102,19 @@ public class Test {
 //		replyDAO.delete(10L);
 		
 //		replyDAO.update(replyVO);
+//		if(followDAO.checkDuplicateFollow(56L)) {
+//			followDAO.insertFollow(56L);
+//		} else System.out.println("중복된 팔로우");
+//		System.out.println(followDAO.selectFollowerAll());
+//		System.out.println(followDAO.selectFollowingAll());
+//		System.out.println(followDAO.selectFollowerCount(49L));
+//		System.out.println(followDAO.selectFollowingCount(56L));
+		
+		if(likeDAO.checkDuplicateLike(5L)) {
+			likeDAO.insertLike(5L);
+		} else System.out.println("중복된 게시물입니다.");
+		
+		System.out.println(likeDAO.selectLikeBoardAll());
 	}
-
+	
 }

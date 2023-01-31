@@ -168,11 +168,10 @@ public class BoardDAO {
 //	게시글 수정
 	public void update(BoardVO vo) {
 		String query = "UPDATE TBL_BOARD "
-				+ "SET BOARD_TITLE = ?, BOARD_CONTENT = ?, BOARD_UPDATE_DATE = TO_DATE(?, 'YYYY-MM-DD HH24:MI:SS') "
+				+ "SET BOARD_TITLE = ?, BOARD_CONTENT = ?, BOARD_UPDATE_DATE = SYSDATE "
 				+ "WHERE BOARD_ID = ? ";
 		
 		LocalDateTime now = LocalDateTime.now();
-		String formatedNow = now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 		
 		con = DBConnector.getConnection();
 		try {
@@ -180,8 +179,7 @@ public class BoardDAO {
 			
 			pr.setString(1, vo.getBoardTitle());
 			pr.setString(2, vo.getBoardContent());
-			pr.setString(3, formatedNow);
-			pr.setLong(4, vo.getBoardId());
+			pr.setLong(3, vo.getBoardId());
 			
 			pr.executeUpdate();
 			
