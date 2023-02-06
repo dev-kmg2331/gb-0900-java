@@ -38,6 +38,16 @@ public class SubStringSolution {
 		return answer;
 	}
 
+	/**
+     * 주어진 숫자 문자열의 각 자릿수 * 해당 자리의 아스키코드 값을 차례로 더해준다.
+     *
+     * @author 강민구
+     * @return int
+     * @version 1.0
+     * 
+     * @param t : 주어진 숫자 문자열
+     * @param digit : 해당 숫자의 자릿수 ex) 3자리면 100
+     */
 	private int stringCharSum(String t, int digit) {
 		int sum = 0;
 		
